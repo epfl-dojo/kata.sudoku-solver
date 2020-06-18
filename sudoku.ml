@@ -118,3 +118,17 @@ let rec resoudre sudoku : sudoku list =
      in
      let ((i, j), chiffres) = meilleure_option
      in List.concat (List.map (fun c -> resoudre (remplace2 sudoku i j (Nb c))) chiffres);;
+
+let print_sudoku sudoku =
+  let case_to_string c = match c with
+    | Vide -> " "
+    | Nb x -> Printf.sprintf "%d" x
+  in
+  let print_line l = print_endline (String.concat " " (List.map case_to_string l))
+  in
+  begin
+    List.iter print_line sudoku ;
+    print_newline ()
+  end;;
+
+List.iter print_sudoku (resoudre sudoku_tres_difficile)
