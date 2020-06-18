@@ -4,10 +4,30 @@
 open OUnit2
 
 let suite =
-  "TestSudokuEstConforme" >::: [
-      "test_sudoku_tres_difficile_conforme" >:: fun _ ->
-        assert (est_conforme sudoku_tres_difficile)
-  ]
+  "Test Suite" >::: [
+      "est_conforme" >::: [
+        ( "sudoku_tres_difficile est conforme" >::
+            fun _ -> assert (est_conforme sudoku_tres_difficile)
+        ) ;
+      ];
+      "racine_carree_entiere" >::: [
+          (
+            "9 → 3" >::
+              fun _ -> assert_equal 3 (racine_carree_entiere 9)
+          ) ;
+          ( "8 → erreur" >::
+              fun _ -> try
+                      begin
+                        let _ = racine_carree_entiere 8 in () ;
+                        assert_failure "racine_carree_entiere 8 devrait échouer"
+                      end
+            with Failure _ -> ()
+          ) ;
+        ];
+      "est_bien_carre" >::: [
+          "est_bien_carre : oui" >:: fun _ -> assert (est_bien_carre sudoku_tres_difficile)
+        ];
+    ]
 
 (************************************************************************)
 (* Il y a quelque chose de ce genre dans OUnit2, mais il n'est

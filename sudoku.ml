@@ -15,5 +15,18 @@ let sudoku_tres_difficile : sudoku = [
     [ Vide ; Nb 4 ; Vide ;     Vide ; Nb 1 ; Vide ;     Vide ; Nb 9 ; Vide ]
   ];;
 
-let est_conforme s =
-  let t = List.length s in true ;;
+let racine_carree_entiere n =
+  let r = sqrt (float_of_int n) in
+  if r = floor r then
+    int_of_float r
+  else
+    raise (Failure "n'est pas un carré")
+
+let ordre sudoku = racine_carree_entiere (List.length sudoku)
+
+let est_bien_carre sudoku =
+  let _ = ordre sudoku
+  and l = List.length sudoku
+  in List.for_all (fun ligne -> List.length ligne == l) sudoku
+
+let est_conforme sudoku = est_bien_carre sudoku
