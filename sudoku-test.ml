@@ -37,6 +37,10 @@ let sudoku_faux_en_colonnes : sudoku = [
 
 let suite =
   "Test Suite" >::: [
+      "place" >::: [
+         "par l'exemple" >::
+           fun _ -> assert_equal (place sudoku_faux_en_colonnes 6 3) (Nb 2)
+      ] ;
       "est_conforme" >::: [
         ( "sudoku_tres_difficile est conforme" >::
             fun _ -> assert (est_conforme sudoku_tres_difficile)

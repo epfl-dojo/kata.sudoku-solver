@@ -34,6 +34,8 @@ let pas_de_doublons l =
   in
   List.length (List.sort_uniq compare pas_vides) = List.length pas_vides
 
+let place sudoku i j = List.nth (List.nth sudoku j) i
+
 let est_conforme sudoku =
   est_bien_carre sudoku
   &&
