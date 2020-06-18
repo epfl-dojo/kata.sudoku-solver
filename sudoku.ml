@@ -34,10 +34,20 @@ let pas_de_doublons l =
   in
   List.length (List.sort_uniq compare pas_vides) = List.length pas_vides
 
+let rec (--^) i j = if i >= j then [] else (i :: (--^) (i + 1) j)
+
 let place sudoku i j = List.nth (List.nth sudoku j) i
 
 let est_conforme sudoku =
+  let plage = 0 --^ (List.length sudoku)
+  in
+  let colonne i = List.map (fun j -> place sudoku i j) plage
+  in
+  let colonnes = List.map colonne plage
+  in
   est_bien_carre sudoku
   &&
     List.for_all pas_de_doublons sudoku
+  &&
+    List.for_all pas_de_doublons colonnes
 
