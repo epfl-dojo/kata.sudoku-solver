@@ -73,10 +73,10 @@ let suite =
         ( "sudoku_faux_en_colonnes n'est pas conforme" >::
             fun _ -> assert (not (est_conforme sudoku_faux_en_colonnes))
         ) ;
-(*        ( "sudoku_faux_en_petits_carres n'est pas conforme" >::
+        ( "sudoku_faux_en_petits_carres n'est pas conforme" >::
             fun _ -> assert (not (est_conforme sudoku_faux_en_petits_carres))
         ) ;
- *)
+
         ( "sudoku mal carré → pas conforme" >::
             fun _ -> let malcarre = [ [ Vide ; Vide ; Vide ];
                                        [ Vide ; Vide ; Vide ];

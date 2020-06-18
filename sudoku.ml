@@ -45,6 +45,10 @@ let listMap2 f plage =
 let petit_carre sudoku i0 j0 =
   listMap2 (fun i j -> place sudoku (i  + i0) (j + j0)) (0 --^ (ordre sudoku))
 
+let petits_carres sudoku =
+  let ordre = ordre sudoku
+  in listMap2 (fun i j -> petit_carre sudoku (i * ordre) (j * ordre)) (0 --^ ordre)
+
 let est_conforme sudoku =
   let plage = 0 --^ (List.length sudoku)
   in
@@ -57,4 +61,5 @@ let est_conforme sudoku =
     List.for_all pas_de_doublons sudoku
   &&
     List.for_all pas_de_doublons colonnes
-
+  &&
+    List.for_all pas_de_doublons (petits_carres sudoku)
