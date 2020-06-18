@@ -63,3 +63,16 @@ let est_conforme sudoku =
     List.for_all pas_de_doublons colonnes
   &&
     List.for_all pas_de_doublons (petits_carres sudoku)
+
+(***********************************************************)
+
+let rec remplace liste offset v =
+  match liste with
+  | [] -> []
+  | a :: reste -> match offset with
+                  | 0 -> v :: reste
+                  | n -> a :: remplace reste (n - 1) v
+
+let remplace2 l i j v =
+  remplace l j (remplace (List.nth l j) i v)
+

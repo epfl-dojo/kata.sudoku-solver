@@ -111,6 +111,24 @@ let suite =
              fun _ -> assert_equal false (pas_de_doublons [Vide; Vide; Nb 1; Nb 3; Nb 1])
           );
         ];
+      "remplace" >::: [
+          ("par l'exemple" >::
+             fun _ -> assert_equal ["a"; "b"; "c"; "f"; "e"] (
+                          remplace ["a"; "b"; "c"; "d"; "e"] 3 "f")
+          ) ;
+        ];
+      "remplace2" >::: [
+          ("par l'exemple" >::
+             fun _ -> assert_equal [[ Nb 1; Vide; Vide; Vide ];
+                                    [ Nb 2; Vide; Vide; Vide ];
+                                    [ Nb 3; Vide; Vide; Vide ];
+                                    [ Vide; Nb 4; Vide; Vide ]] (
+                          remplace2 [[ Nb 1; Vide; Vide; Vide ];
+                                     [ Nb 2; Vide; Vide; Vide ];
+                                     [ Nb 3; Vide; Vide; Vide ];
+                                     [ Vide; Vide; Vide; Vide ]] 1 3 (Nb 4))
+          ) ;
+        ];
     ]
 
 (************************************************************************)
