@@ -3,12 +3,52 @@
 #require "OUnit2";;
 open OUnit2
 
+let sudoku_faux_en_lignes : sudoku = [
+    (*        v------ Ici *)
+    [ Nb 9 ; Nb 9 ; Vide ;     Vide ; Vide ; Vide ;     Vide ; Vide ; Vide ];
+    [ Vide ; Vide ; Vide ;     Vide ; Vide ; Nb 1 ;     Vide ; Vide ; Nb 7 ];
+    [ Nb 5 ; Vide ; Vide ;     Vide ; Vide ; Nb 3 ;     Vide ; Vide ; Nb 4 ];
+
+    [ Vide ; Vide ; Nb 7 ;     Vide ; Vide ; Vide ;     Nb 2 ; Vide ; Vide ];
+    [ Vide ; Vide ; Nb 3 ;     Nb 6 ; Vide ; Nb 8 ;     Vide ; Vide ; Vide ];
+    [ Vide ; Vide ; Vide ;     Nb 4 ; Vide ; Nb 3 ;     Nb 6 ; Nb 1 ; Vide ];
+
+    [ Vide ; Nb 8 ; Nb 5 ;     Vide ; Nb 4 ; Vide ;     Vide ; Vide ; Vide ];
+    [ Vide ; Vide ; Vide ;     Nb 3 ; Nb 2 ; Vide ;     Vide ; Nb 6 ; Vide ];
+    [ Vide ; Nb 4 ; Vide ;     Vide ; Nb 1 ; Vide ;     Vide ; Nb 9 ; Vide ]
+  ]
+
+
+let sudoku_faux_en_colonnes : sudoku = [
+    [ Nb 9 ; Vide ; Vide ;     Vide ; Vide ; Vide ;     Vide ; Vide ; Vide ];
+    [ Vide ; Vide ; Vide ;     Vide ; Vide ; Nb 1 ;     Vide ; Vide ; Nb 7 ];
+    [ Nb 5 ; Vide ; Vide ;     Vide ; Vide ; Nb 3 ;     Vide ; Vide ; Nb 4 ];
+
+    [ Vide ; Vide ; Nb 7 ;     Vide ; Vide ; Vide ;     Nb 2 ; Vide ; Vide ];
+    [ Vide ; Vide ; Nb 3 ;     Nb 6 ; Vide ; Nb 8 ;     Vide ; Vide ; Vide ];
+    (*                            Ici ----------v *)
+    [ Vide ; Vide ; Vide ;     Nb 4 ; Vide ; Nb 3 ;     Nb 6 ; Nb 1 ; Vide ];
+
+    [ Vide ; Nb 8 ; Nb 5 ;     Vide ; Nb 4 ; Vide ;     Vide ; Vide ; Vide ];
+    [ Vide ; Vide ; Vide ;     Nb 3 ; Nb 2 ; Vide ;     Vide ; Nb 6 ; Vide ];
+    [ Vide ; Nb 4 ; Vide ;     Vide ; Nb 1 ; Vide ;     Vide ; Nb 9 ; Vide ]
+  ]
+
+
 let suite =
   "Test Suite" >::: [
       "est_conforme" >::: [
         ( "sudoku_tres_difficile est conforme" >::
             fun _ -> assert (est_conforme sudoku_tres_difficile)
         ) ;
+        ( "sudoku_faux_en_lignes n'est pas conforme" >::
+           fun _ -> assert (not (est_conforme sudoku_faux_en_lignes))
+        ) ;
+   (*
+        ( "sudoku_faux_en_colonnes n'est pas conforme" >::
+            fun _ -> assert (not (est_conforme sudoku_faux_en_colonnes))
+        ) ;
+    *)
         ( "sudoku mal carré → pas conforme" >::
             fun _ -> let malcarre = [ [ Vide ; Vide ; Vide ];
                                        [ Vide ; Vide ; Vide ];
@@ -34,6 +74,14 @@ let suite =
         ];
       "est_bien_carre" >::: [
           "est_bien_carre : oui" >:: fun _ -> assert (est_bien_carre sudoku_tres_difficile)
+        ];
+      "pas_de_doublons" >::: [
+          ("sans doublons" >::
+             fun _ -> assert_equal true (pas_de_doublons [Vide; Vide; Nb 1; Nb 3])
+          );
+          ("avec doublons" >::
+             fun _ -> assert_equal false (pas_de_doublons [Vide; Vide; Nb 1; Nb 3; Nb 1])
+          );
         ];
     ]
 

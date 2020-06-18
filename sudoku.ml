@@ -29,4 +29,13 @@ let est_bien_carre sudoku =
   and l = List.length sudoku
   in List.for_all (fun ligne -> List.length ligne == l) sudoku
 
-let est_conforme sudoku = est_bien_carre sudoku
+let pas_de_doublons l =
+  let pas_vides = List.filter (fun c -> c != Vide) l
+  in
+  List.length (List.sort_uniq compare pas_vides) = List.length pas_vides
+
+let est_conforme sudoku =
+  est_bien_carre sudoku
+  &&
+    List.for_all pas_de_doublons sudoku
+
