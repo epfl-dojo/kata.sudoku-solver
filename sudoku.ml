@@ -49,20 +49,24 @@ let petits_carres sudoku =
   let ordre = ordre sudoku
   in listMap2 (fun i j -> petit_carre sudoku (i * ordre) (j * ordre)) (0 --^ ordre)
 
-let est_conforme sudoku =
+let est_conforme_rapide_ sudoku =
   let plage = 0 --^ (List.length sudoku)
   in
   let colonne i = List.map (fun j -> place sudoku i j) plage
   in
   let colonnes = List.map colonne plage
   in
-  est_bien_carre sudoku
-  &&
     List.for_all pas_de_doublons sudoku
   &&
     List.for_all pas_de_doublons colonnes
   &&
     List.for_all pas_de_doublons (petits_carres sudoku)
+
+let est_conforme sudoku =
+  est_bien_carre sudoku
+  &&
+  est_conforme_rapide_ sudoku
+
 
 (***********************************************************)
 
@@ -76,3 +80,41 @@ let rec remplace liste offset v =
 let remplace2 l i j v =
   remplace l j (remplace (List.nth l j) i v)
 
+let cases_vides sudoku =
+  let taille = List.length sudoku
+  in
+  List.filter
+    (fun (i,j) -> Vide = place sudoku i j)
+    (listMap2 (fun i j -> i, j) (0 --^ taille))
+
+let chiffres_permis sudoku i j =
+  let chiffres = 1 --^ (List.length sudoku + 1)
+  in
+  List.filter
+    (fun n -> (est_conforme_rapide_ (remplace2 sudoku i j (Nb n)))
+    ) chiffres
+
+let min compare l =
+  let rec min_ meilleur l = match l with
+    | []      -> meilleur
+    | a :: l' -> min_ (if (compare a meilleur) < 0 then a else meilleur) l'
+  in match l with
+  | []      -> raise (Failure "min de liste vide")
+  | a :: l' -> min_ a l'
+
+let rec resoudre sudoku : sudoku list =
+  let cases_vides = cases_vides sudoku
+  in
+  match cases_vides with
+  | [] -> if est_conforme sudoku then [sudoku] else []
+  | _  ->
+     let options : ((int * int) * int list) list =
+       List.map (fun (i, j) -> ((i,j), chiffres_permis sudoku i j)) cases_vides
+     in
+     let meilleure_option = min (fun (_, chiffres_permis_a)
+                                     (_, chiffres_permis_b) ->
+                                (List.length chiffres_permis_a) - (List.length chiffres_permis_b)
+                              ) options
+     in
+     let ((i, j), chiffres) = meilleure_option
+     in List.concat (List.map (fun c -> resoudre (remplace2 sudoku i j (Nb c))) chiffres);;
