@@ -57,6 +57,12 @@ let suite =
          "par l'exemple" >::
            fun _ -> assert_equal (place sudoku_faux_en_colonnes 6 3) (Nb 2)
       ] ;
+      "petit_carre" >::: [
+        ( "par l'exemple" >::
+            fun _ -> assert_equal (petit_carre sudoku_faux_en_colonnes 6 3)
+                       [Nb 2; Vide; Vide; Vide; Vide; Vide; Nb 6; Nb 1; Vide]
+        ) ;
+      ] ;
       "est_conforme" >::: [
         ( "sudoku_tres_difficile est conforme" >::
             fun _ -> assert (est_conforme sudoku_tres_difficile)
