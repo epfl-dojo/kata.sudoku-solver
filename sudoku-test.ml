@@ -9,6 +9,14 @@ let suite =
         ( "sudoku_tres_difficile est conforme" >::
             fun _ -> assert (est_conforme sudoku_tres_difficile)
         ) ;
+        ( "sudoku mal carré → pas conforme" >::
+            fun _ -> let malcarre = [ [ Vide ; Vide ; Vide ];
+                                       [ Vide ; Vide ; Vide ];
+                                       [ Vide ; Vide ; Vide ]] in
+                    try
+                      assert_equal false (not (est_conforme malcarre))
+                    with Failure _ -> ()
+        ) ;
       ];
       "racine_carree_entiere" >::: [
           (
