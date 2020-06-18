@@ -38,14 +38,12 @@ let rec (--^) i j = if i >= j then [] else (i :: (--^) (i + 1) j)
 
 let place sudoku i j = List.nth (List.nth sudoku j) i
 
+let listMap2 f plage =
+  let petite_ligne j = List.map (fun i -> f i j) plage
+  in List.concat (List.map petite_ligne plage)
+
 let petit_carre sudoku i0 j0 =
-  let ordre = ordre sudoku
-  in
-  let liste_i = List.map (fun x -> x + i0) (0 --^ ordre)
-  and liste_j = List.map (fun x -> x + j0) (0 --^ ordre)
-  in
-  let petite_ligne j = List.map (fun i -> place sudoku i j) liste_i
-  in List.concat (List.map petite_ligne liste_j)
+  listMap2 (fun i j -> place sudoku (i  + i0) (j + j0)) (0 --^ (ordre sudoku))
 
 let est_conforme sudoku =
   let plage = 0 --^ (List.length sudoku)
