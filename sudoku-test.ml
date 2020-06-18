@@ -35,6 +35,22 @@ let sudoku_faux_en_colonnes : sudoku = [
   ]
 
 
+let sudoku_faux_en_petits_carres : sudoku = [
+    [ Nb 9 ; Vide ; Vide ;     Vide ; Vide ; Vide ;     Vide ; Vide ; Vide ];
+    [ Vide ; Vide ; Vide ;     Vide ; Vide ; Nb 1 ;     Vide ; Vide ; Nb 7 ];
+    [ Nb 5 ; Vide ; Vide ;     Vide ; Vide ; Nb 3 ;     Vide ; Vide ; Nb 4 ];
+
+    [ Vide ; Vide ; Nb 7 ;     Vide ; Vide ; Vide ;     Nb 2 ; Vide ; Vide ];
+    [ Vide ; Vide ; Nb 3 ;     Nb 6 ; Vide ; Nb 8 ;     Vide ; Vide ; Vide ];
+    (*   v---- Ici *)
+    [ Nb 7 ; Vide ; Vide ;     Nb 4 ; Vide ; Vide ;     Nb 6 ; Nb 1 ; Vide ];
+
+    [ Vide ; Nb 8 ; Nb 5 ;     Vide ; Nb 4 ; Vide ;     Vide ; Vide ; Vide ];
+    [ Vide ; Vide ; Vide ;     Nb 3 ; Nb 2 ; Vide ;     Vide ; Nb 6 ; Vide ];
+    [ Vide ; Nb 4 ; Vide ;     Vide ; Nb 1 ; Vide ;     Vide ; Nb 9 ; Vide ]
+  ]
+
+
 let suite =
   "Test Suite" >::: [
       "place" >::: [
@@ -51,6 +67,10 @@ let suite =
         ( "sudoku_faux_en_colonnes n'est pas conforme" >::
             fun _ -> assert (not (est_conforme sudoku_faux_en_colonnes))
         ) ;
+(*        ( "sudoku_faux_en_petits_carres n'est pas conforme" >::
+            fun _ -> assert (not (est_conforme sudoku_faux_en_petits_carres))
+        ) ;
+ *)
         ( "sudoku mal carré → pas conforme" >::
             fun _ -> let malcarre = [ [ Vide ; Vide ; Vide ];
                                        [ Vide ; Vide ; Vide ];
