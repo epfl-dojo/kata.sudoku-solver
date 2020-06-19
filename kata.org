@@ -1,0 +1,879 @@
+:exports both
+
+* Vérifieur de Sudoku en OCaml
+
+** Types et valeurs
+
+Ce § introduit :
+- les types construits (~type~)
+- les listes, un type paramétrique
+- le point-virgule comme séparateur
+
+
+1. Installer OCaml
+2. Définir le type et un exemple.
+
+#+BEGIN_SRC ocaml
+type case = Vide | Nb of int
+type sudoku = case list list
+
+let sudoku_tres_difficile : sudoku = [
+    [ Nb 9 ; Vide ; Vide ;     Vide ; Vide ; Vide ;     Vide ; Vide ; Vide ];
+    [ Vide ; Vide ; Vide ;     Vide ; Vide ; Nb 1 ;     Vide ; Vide ; Nb 7 ];
+    [ Nb 5 ; Vide ; Vide ;     Vide ; Vide ; Nb 3 ;     Vide ; Vide ; Nb 4 ];
+
+    [ Vide ; Vide ; Nb 7 ;     Vide ; Vide ; Vide ;     Nb 2 ; Vide ; Vide ];
+    [ Vide ; Vide ; Nb 3 ;     Nb 6 ; Vide ; Nb 8 ;     Vide ; Vide ; Vide ];
+    [ Vide ; Vide ; Vide ;     Nb 4 ; Vide ; Vide ;     Nb 6 ; Nb 1 ; Vide ];
+
+    [ Vide ; Nb 8 ; Nb 5 ;     Vide ; Nb 4 ; Vide ;     Vide ; Vide ; Vide ];
+    [ Vide ; Vide ; Vide ;     Nb 3 ; Nb 2 ; Vide ;     Vide ; Nb 6 ; Vide ];
+    [ Vide ; Nb 4 ; Vide ;     Vide ; Nb 1 ; Vide ;     Vide ; Nb 9 ; Vide ]
+  ]
+
+#+END_SRC
+
+*Exercice — Pour voir ceux qui suivent :*
+Veuillez préparer dans ce même format, un sudoku de votre choix, afin de tester le solveur.
+
+** Fonctions
+
+#+BEGIN_SRC ocaml
+
+let est_conforme s = true
+
+#+END_SRC
+
+** Tests unitaires
+
+Dans ~sudoku-test.ml~ :
+
+#+BEGIN_SRC ocaml
+
+#use "./sudoku.ml"
+
+est_conforme sudoku_tres_difficile
+
+#+END_SRC
+
+Ou pour faire plus classe :
+
+#+BEGIN_SRC shell
+
+opam install findlib_top
+opam install ounit2
+
+#+END_SRC
+
+
+#+BEGIN_SRC ocaml
+
+#use "topfind"
+#require "OUnit2"
+open OUnit2
+
+let suite =
+  "TestSudokuEstConforme" >::: [
+      "sudoku_tres_difficile est conforme" >:: fun _ ->
+        assert (est_conforme sudoku_tres_difficile)
+  ]
+
+(* ... *)
+
+let () = run_test_tt_main suite
+
+#+END_SRC
+
+... Mais ça ne marche pas dans l'interpréteur interactif — pour une
+sombre histoire de ~Sys.argv~. Voici la rustine :
+
+#+BEGIN_SRC ocaml
+
+(************************************************************************)
+(* Il y a quelque chose de ce genre dans OUnit2, mais il n'est
+   pas exporté :( *)
+let run_test_tt suite =
+  let  conf =  OUnitConf.default () in
+  let _ =
+  OUnitCore.run_test_tt conf
+    (OUnitLoggerStd.std_logger conf OUnitLogger.shard_default)
+    (snd (OUnitRunner.choice conf))
+    (snd (OUnitChooser.choice conf))
+    suite in
+  ()
+
+#+END_SRC
+
+
+** Premiers objectifs intermédiaires
+
+*** «Carré» et «bien carré»
+
+- Sudoku checker
+
+nécessite
+
+- Le fait que le tableau est carré
+
+#+BEGIN_SRC ocaml
+
+let est_carre sudoku =
+  let l = List.length sudoku
+  in List.for_all (fun ligne -> List.length ligne == l) sudoku
+
+let est_conforme sudoku = est_carre sudoku
+
+#+END_SRC
+
+et
+
+- Le fait qu'il est «bien carré», c'est-à-dire que sa taille est un carré (au sens numérique du terme)
+
+#+BEGIN_SRC ocaml
+
+let ordre sudoku = racine_carree_entiere (List.length sudoku)
+
+let est_bien_carre sudoku =
+  let ordre = ordre sudoku
+  and l = List.length sudoku
+  in List.for_all (fun ligne -> List.length ligne == l) sudoku
+
+let est_conforme sudoku = est_bien_carre sudoku
+
+#+END_SRC
+
+**** Étoffer les tests unitaires
+
+Ce § introduit :
+- Des astuces pour se dépatouiller sans chercher sur StackOverflow comme d'hab' (moins facile avec un langage moins populaire)
+- La lecture du type d'une fonction comme documentation
+- Les *opérateurs infixes*, qui ne sont finalement que des fonctions déguisées
+- Les coutumes particulières, «mathématisantes», du parseur d'OCaml : associativité à droite, parenthèses, point-virgules
+
+~sudoku-test.ml~ : ... Maintenant j'ai besoin d'une test suite à
+«étages». Comment faire ?
+
+#+BEGIN_SRC ocaml
+
+(>:::)
+
+#+END_SRC
+
+
+#+BEGIN_SRC ocaml
+
+- : string -> OUnit2.test list -> OUnit2.test = <fun>
+
+#+END_SRC
+
+*Rien qu'en lisant le type, j'ai une idée de comment m'en sortir.*
+
+#+BEGIN_SRC ocaml
+
+let suite =
+  "Test Suite" >::: [
+      "est_conforme" >::: [
+        "sudoku_tres_difficile est conforme" >::
+          fun _ -> assert (est_conforme sudoku_tres_difficile)
+      ];
+      "racine_carree_entiere" >::: [
+            "9 → 3" >::
+              fun _ -> assert_equal 3 (racine_carree_entiere 9)
+        ]
+    ]
+
+#+END_SRC
+
+Quelques ennuis à dupliquer le test dans ~racine_carree_entiere~ ?
+*Utiliser des parenthèses* pour désambigüer l'associativité à
+droite.
+
+#+BEGIN_SRC ocaml
+
+let suite =
+  "Test Suite" >::: [
+      "est_conforme" >::: [
+        "sudoku_tres_difficile est conforme" >::
+          fun _ -> assert (est_conforme sudoku_tres_difficile)
+      ];
+      "racine_carree_entiere" >::: [
+            ( "9 → 3" >::
+               fun _ -> assert_equal 3 (racine_carree_entiere 9)
+            ) ;
+            ( "9 → 3" >::
+               fun _ -> assert_equal 3 (racine_carree_entiere 9)
+            ) ;  (* Point-virgule superflu mais ignoré *)
+        ]
+    ]
+
+#+END_SRC
+
+Ce dernier fragment a introduit :
+- l'associativité à droite
+- le point-virgule superflu
+
+**** Tester les cas d'erreur
+
+Ce § introduit :
+- la forme *begin* ... *end* et la programmation impérative
+- les exceptions
+- la forme fonctionnelle des structures de contrôle (ici *try* ... *with*; nous verrons *if* ... *then* ... *else* plus tard, sur le même modèle)
+
+#+BEGIN_SRC ocaml
+
+let suite =
+  "Test Suite" >::: [
+      "est_conforme" >::: [
+        "sudoku_tres_difficile est conforme" >::
+          fun _ -> assert (est_conforme sudoku_tres_difficile)
+      ];
+      "racine_carree_entiere" >::: [
+          (
+            "9 → 3" >::
+              fun _ -> assert_equal 3 (racine_carree_entiere 9)
+          ) ;
+          ( "8 → erreur" >::
+              fun _ -> try
+                      begin
+                        let _ = racine_carree_entiere 8 in () ;
+                        assert_failure "racine_carree_entiere 8 devrait échouer"
+                      end
+            with Failure _ -> ()
+          ) ;
+        ]
+    ]
+
+#+END_SRC
+
+Implémentons :
+
+#+BEGIN_SRC ocaml
+
+let racine_carree_entiere n =
+  let r = sqrt (float_of_int n) in
+  if r = floor r then
+    int_of_float r
+  else
+    raise (Failure "n'est pas un carré")
+
+#+END_SRC
+
+Pour finir, corrigeons le /warning/ sur la variable inutilisée ~ordre~ : 
+
+#+BEGIN_SRC ocaml
+
+let est_bien_carre sudoku =
+  let _ = ordre sudoku
+  and l = List.length sudoku
+  in List.for_all (fun ligne -> List.length ligne == l) sudoku
+
+#+END_SRC
+
+*** Bravo !
+
+Resynchro : [[https://github.com/epfl-dojo/kata.sudoku-solver/tree/e17e4e89e32118642b9a340dc9e993eac997f713][version e17e4e8]]
+
+
+** L'exercice gogleux
+
+*** Pour jouer au sudoku, il faut savoir trouver les doublons
+
+https://www.rosettacode.org/wiki/Remove_duplicate_elements#OCaml
+
+ou bien
+
+#+BEGIN_SRC ocaml
+
+#show_module List ;;
+
+#+END_SRC
+
+... nous motivent à essayer avec ~List.sort_uniq~.
+
+#+BEGIN_SRC ocaml
+
+      "pas_de_doublons" >::: [
+          ("sans doublons" >::
+             fun _ -> assert_equal true (pas_de_doublons [Vide; Vide; Nb 1; Nb 3])
+          );
+          ("avec doublons" >::
+             fun _ -> assert_equal false (pas_de_doublons [Vide; Vide; Nb 1; Nb 3; Nb 1])
+          );
+        ];
+
+#+END_SRC<
+
+**** Implémentons...
+
+#+BEGIN_SRC ocaml
+
+let pas_de_doublons l =
+  let pas_vides = List.filter (fun c -> c != Vide) l
+  in
+  List.length (List.sort_uniq compare pas_vides) = List.length pas_vides
+
+#+END_SRC
+
+#+BEGIN_SRC ocaml
+
+let est_conforme sudoku =
+  est_bien_carre sudoku
+  &&
+    List.for_all (fun ligne -> pas_de_doublons ligne) sudoku
+
+#+END_SRC
+
+**** (Fin de la première vidéo)
+
+*** Reprise en pente douce
+
+**** ... Refactorons
+
+Dans ~est_conforme~, on peut éliminer le lambda intermédiaire en employant la
+[[https://fr.wikipedia.org/wiki/Curryfication][curryfication]], un idiome qu'OCaml emploie nativement et presque sans y
+penser :
+
+#+BEGIN_SRC ocaml
+
+let est_conforme sudoku =
+  est_bien_carre sudoku
+  &&
+    List.for_all pas_de_doublons sudoku
+
+#+END_SRC
+
+*** Recherche des doublons dans les colonnes
+
+Rajoutons [[https://github.com/epfl-dojo/kata.sudoku-solver/commit/6e3c0ab99908ed5d34a6bba01fa646c8f1ba8f2f#diff-ababde23f77b281e532ebeaec6dc58afR22][un pré-test]] d'un sudoku faux en colonnes, puis
+
+[[https://github.com/epfl-dojo/kata.sudoku-solver/tree/6e3c0ab99908ed5d34a6bba01fa646c8f1ba8f2f][Resynchronisation à la version 6e3c0ab999]]
+
+**** Lire une case du sudoku
+
+[[https://github.com/epfl-dojo/kata.sudoku-solver/commit/f4dbc97][Implémentons l'accesseur ~place~]] — Paradoxalement, c'est pour l'une
+des fonctions les plus simples que le test unitaire est le plus
+nécessaire ! (Afin de ne pas se tromper entre lignes et colonnes)
+
+**** Contrôler les colonnes
+
+Ce § introduit
+- un opérateur infixe défini par le programmeur — Parce qu'on le peut !
+- les fonctions récursives /too simple to break/ et donc qu'on n'a [[https://livebook.manning.com/book/junit-in-action-second-edition/chapter-1/41#ch01sb01][pas besoin de tester]] (!!!)
+
+Voyons...
+
+#+BEGIN_SRC ocaml
+
+let est_conforme sudoku =
+  let plage = 0 --^ (List.length sudoku)
+  in
+  let colonne i = List.map (fun j -> place sudoku i j) plage
+  in
+  let colonnes = List.map colonne plage
+  in
+  est_bien_carre sudoku
+  &&
+    List.for_all pas_de_doublons sudoku
+  &&
+    List.for_all pas_de_doublons colonnes
+
+#+END_SRC
+
+Heu, ~--^~ ? je ne connaissais pas... Normal, nous ne l'avons pas encore écrit !
+
+#+BEGIN_SRC ocaml
+
+let rec (--^) i j = if i >= j then [] else (i :: (--^) (i + 1) j)
+
+#+END_SRC
+
+Test manuel :
+
+#+BEGIN_SRC ocaml
+
+4 --^ 8 ;;
+
+#+END_SRC
+
+*** Et maintenant, les petits carrés.
+
+Ce § introduit :
+- la forme fonctionnelle de *if* ... *then* ... *else*
+
+#+BEGIN_SRC ocaml
+
+      "petit_carre" >::: [
+        ( "par l'exemple" >::
+            fun _ -> assert_equal (petit_carre sudoku_faux_en_colonnes 6 3)
+                       [Nb 2; Vide; Vide; Vide; Vide; Vide; Nb 6; Nb 1; Vide]
+        ) ;
+      ] ;
+
+#+END_SRC
+
+#+BEGIN_SRC ocaml
+
+let petit_carre sudoku i0 j0 =
+  let ordre = ordre sudoku
+  in
+  let liste_i = List.map (fun x -> x + i0) (0 --^ ordre)
+  and liste_j = List.map (fun x -> x + j0) (0 --^ ordre)
+  in
+  let petite_ligne i = List.map (fun j -> place sudoku i j) liste_i
+  in List.concat (List.map petite_ligne liste_j)
+
+#+END_SRC
+
+Et maintenant j'ai besoin d'une fonction ~petits_carres~ qui itère
+~petit_carre~ et renvoie la liste des résultats...
+
+**** Refactoriser pour la généralité
+
+Pff... Pour écrire ~petits_carres~ j'ai besoin d'encore une double
+boucle. Pas envie de copier-modifier ce qui précède. Commençons donc
+par tâcher d'abstraire la fonction ~petit_carre~ pour la *rendre plus
+générale*.
+
+- Qu'est-ce qui est générique dans ma fonction ? → *je le garde*
+- Qu'est-ce qui est spécifique à la mico-tâche en cours et ne fait pas
+  partie de l'«essence» d'une double boucle ? → *je le passe en paramètre*
+  - C'est du code ? Qu'à cela ne tienne : *je passe une fonction en paramètre*
+
+
+1. Je déplace les additions près du code spécifique (l'appel à ~place~, qu'on peut imaginer qu'on ne retrouvera pas dans la future fonction ~petits_carres~)
+2. Je me rends compte que je n'ai plus besoin des ~(fun x -> x)~
+3. ... ni en fait d'autre chose que de ~(0 --^ ordre)~
+4. ... de sorte que je me demande s'il ne faudrait pas plutôt passer ~(0 --^ ordre)~ comme paramètre, plutôt que ~sudoku~
+
+Le résultat est une fonction qui est réduite *à la seule essence d'une
+double boucle* (même pas forcément sur une liste de listes — comme on
+peut s'en rendre compte en étudiant son type).
+
+#+BEGIN_SRC ocaml
+
+let xxx plage f =
+  let petite_ligne j = List.map (fun i -> f i j) plage
+  in List.concat (List.map petite_ligne plage)
+
+let petit_carre sudoku i0 j0 =
+  let ordre = ordre sudoku
+  in
+  xxx (0 --^ ordre) (fun i j -> place sudoku (i  + i0) (j  + j0))
+
+#+END_SRC
+
+#+BEGIN_SRC ocaml
+
+val xxx : 'a list -> ('a -> 'a -> 'b) -> 'b list = <fun>
+
+#+END_SRC
+
+Il ne reste plus qu'à lui trouver un nom à la place de ~xxx~...
+Pourquoi pas ~listMap2~, par mimétisme avec ~List.map~, si on prend la
+peine de permuter les deux arguments ?
+
+#+BEGIN_SRC ocaml
+
+let listMap2 f plage =
+  let petite_ligne j = List.map (fun i -> f i j) plage
+  in List.concat (List.map petite_ligne plage)
+
+let petit_carre sudoku i0 j0 =
+  listMap2 (fun i j -> place sudoku (i  + i0) (j  + j0))  (0 --^ ordre sudoku)
+
+#+END_SRC
+
+Et c'est alors qu'écrire ~petits_carres~ devient un vrai plaisir :
+
+#+BEGIN_SRC ocaml
+
+let petits_carres sudoku =
+  let ordre = ordre sudoku
+  in listMap2 (fun i j -> petit_carre sudoku (i * ordre) (j * ordre)) (0 --^ ordre)
+
+#+END_SRC
+
+Ce § a introduit :
+- le fait de masquer un identifiant avec un autre (~ordre~, ci-dessus)
+
+*** Ta-da !
+
+#+BEGIN_SRC ocaml
+
+  &&
+    List.for_all pas_de_doublons (petits_carres sudoku)
+
+#+END_SRC
+
+[[https://github.com/epfl-dojo/kata.sudoku-solver/tree/5a09380e76d757efda24014730085f818c40bd64][Resynchronisation à la version 5a09380]]
+
+* Solveur de Sudoku
+
+** Données immuables
+
+Ce § introduit :
+- les structures de données calculées les unes à partir des autres (plutôt que mutées)
+
+Dans la mesure du possible, *en programmation fonctionnelle on évite
+de modifier une valeur.* Cette restriction à la liberté du
+programmeur, est un transfert de pouvoir en faveur du compilateur qui
+est libre d'éliminer à l'envi les appels multiples à la même fonction,
+etc.
+
+En l'occurrence, nous avons besoin d'une *fonction qui calcule un
+nouveau sudoku à partir d'une modification d'un ancien*.
+
+#+BEGIN_SRC ocaml
+
+      "remplace2" >::: [
+          ("par l'exemple" >::
+             fun _ -> assert_equal [[ Nb 1; Vide; Vide; Vide ];
+                                    [ Nb 2; Vide; Vide; Vide ];
+                                    [ Nb 3; Vide; Vide; Vide ];
+                                    [ Vide; Nb 4; Vide; Vide ]] (
+                          remplace2 [[ Nb 1; Vide; Vide; Vide ];
+                                     [ Nb 2; Vide; Vide; Vide ];
+                                     [ Nb 3; Vide; Vide; Vide ];
+                                     [ Vide; Vide; Vide; Vide ]] 1 3 (Nb 4))
+          ) ;
+
+
+#+END_SRC
+
+On peut imaginer implémenter cela en remplaçant une ligne mais en
+gardant les autres; et dans cette ligne, on remplace une case en
+gardant les autres. Ici encore, une fonction réutilisable ~remplace~
+ferait bien l'affaire :
+
+#+BEGIN_SRC ocaml
+
+      "remplace" >::: [
+          ("par l'exemple" >::
+             fun _ -> assert_equal ["a"; "b"; "c"; "f"; "e"] (
+                          remplace ["a"; "b"; "c"; "d"; "e"] 3 "f")
+          ) ;
+        ];
+
+
+#+END_SRC
+
+Solution :
+
+#+BEGIN_SRC ocaml
+
+let rec remplace liste offset v =
+  match liste with
+  | [] -> []
+  | a :: reste -> match offset with
+                  | 0 -> v :: reste
+                  | n -> a :: remplace reste (n - 1) v
+
+let remplace2 l i j v =
+  remplace l j (remplace (List.nth l j) i v)
+
+#+END_SRC
+
+On voit comment *l'immuabilité nous dispense de réfléchir* à la
+possibilité que ~(List.nth l j)~ ait changé pendant qu'on y touche.
+Finalement, le programmeur y trouve lui aussi son compte !
+
+** C'est (enfin) le moment de réfléchir.
+
+En tant que joueur humain, je résous le sudoku en *recherchant la
+voie du moindre effort*.
+
+1. Je cherche une case vide où il n'y a plus qu'une seule possibilité pour inscrire un chiffre
+2. J'écris ce chiffre dans la case
+3. Je recommence
+
+Sur certains sudokus très difficiles, je ne peux pas faire 1. — Il faut donc généraliser l'algorithme :
+1. Je choisis la case où il y a le moins de possibilités restantes pour les chiffres à écrire
+2. Je fais plusieurs photocopies de mon sudoku et sur chacune, j'écris un chiffre différent parmi les options qui restent
+   - Mais je me tiens prêt à ce que le sudoku résultant n'ait pas de solution (par exemple, je pourrais me retrouver plus tard au point 1. ci-dessus, avec une case qui n'accepte plus aucun chiffre)
+   - Je traite ce problème avec une gestion astucieuse de ma pile de photocopies, voire avec des moyens technologiques dédiés (ex : crayon-gomme)
+
+En tant que programmeur, je dois prendre quelques précautions supplémentaires :
+- En fait, je vais faire des photocopies à chaque étape du calcul (données immuables)
+- Il peut y avoir plusieurs solutions, ou bien pas de solutions
+
+Mais surtout,
+- *Je conçois mon algorithme pour m'assurer au premier coup d'œil qu'il est correct.*
+
+Pour cela, je dispose d'une voie royale, qui me permet de diviser pour régner : *la récursion.*
+
+#+BEGIN_SRC ocaml
+
+let rec resoudre sudoku : sudoku list =
+
+   (***) resoudre (remplace2 sudoku i j (Nb c)) (***)
+
+#+END_SRC
+
+Hmm, un instant : j'ai vu plus haut que dans mon algorithme, je peux
+être appelé à explorer plusieurs options - Mais toutes partent de la
+même case; seul le chiffre change. Puisque je souhaite que ~resoudre~
+renvoie une liste de solutions, cela donnera
+
+#+BEGIN_SRC ocaml
+
+let rec resoudre sudoku : sudoku list =
+   (***)
+   in List.concat (fun c -> resoudre (remplace2 sudoku i j (Nb c))) chiffres)
+
+#+END_SRC
+
+Facile ! Il n'y a plus qu'à
+- calculer ~i~, ~j~ et ~chiffres~,
+- et résoudre les cas dégénérés (/corner cases/), et ce faisant fournir une «sortie» à la récursion.
+
+
+#+BEGIN_SRC ocaml
+
+let rec resoudre sudoku : sudoku list =
+   let cases_vides = cases_vides sudoku
+   in
+   (***)
+   in List.concat (fun c -> resoudre (remplace2 sudoku i j (Nb c))) chiffres)
+
+#+END_SRC
+
+Nous avons donc les sous-buts suivants :
+- écrire la fonction ~cases_vides~ (facile à tester manuellement);
+- pour chaque case vide, déterminer la liste des chiffres permis à cet endroit;
+- sélectionner la case† qui en a le moins‡ et passer ~chiffres~ au
+  bout de code que nous avons déjà écrit.
+
+Le programmeur astucieux s'interroge...
+
+- † Que faire s'il n'y a aucune case vide ?
+- ‡ Que faire si la case qui a le moins de chiffres permis, en a zéro ?
+
+... et répond :
+- † S'il n'y a pas de cases vides, c'est peut-être que nous tenons une solution. On fait un dernier contrôle avec ~est_conforme~, et on renvoie soit ~[]~ soit ~[sudoku]~ selon la réponse.
+
+#+BEGIN_SRC ocaml
+
+let rec resoudre sudoku : sudoku list =
+   let cases_vides = cases_vides sudoku
+   in
+   match cases_vides with
+     | [] -> if est_conforme sudoku then [sudoku] else []
+     | _ -> let ...
+
+     (***)
+
+     in List.concat (fun c -> resoudre (remplace2 sudoku i j (Nb c))) chiffres)
+
+#+END_SRC
+
+- ‡ Si une case vide a zéro chiffres permis, c'est que le sudoku est impossible; on doit donc renvoyer la liste vide.
+  - ... Ça tombe bien, c'est déjà ce que le cas récursif (la dernière ligne) va faire si ~chiffres~ est vide ! On peut donc ignorer ce ‡.
+
+
+*** Écrire la fonction ~cases_vides~
+
+Ce § introduit :
+- Les valeurs tuples
+
+La valeur de retour est une liste de coordonnées (i, j). Ici encore,
+OCaml s'écrit comme les maths :
+
+#+BEGIN_SRC ocaml
+
+let cases_vides sudoku =
+  let taille = List.length sudoku
+  in
+  List.filter
+    (*** ??? ***)
+    (listMap2 (fun i j -> i, j) (0 --^ taille))
+
+#+END_SRC
+
+Solution :
+
+#+BEGIN_SRC ocaml
+
+let cases_vides sudoku =
+  let taille = List.length sudoku
+  in
+  List.filter
+    (fun (i,j) -> Vide = place sudoku i j)
+    (listMap2 (fun i j -> i, j) (0 --^ taille))
+
+#+END_SRC
+
+Test «à la main»
+
+*** Énumérer les options des cases vides, et choisir la meilleure
+
+Ce § introduit :
+- La notation des types tuples
+- L'accès aux champs d'un tuple par /pattern-matching/
+- L'ivresse de l'abus des tuples
+- Les fonctions récursives auxiliaires
+
+Nous allons calculer successivement
+
+1. La liste des ~options~ pour explorer l'arbre des solutions
+   - Chaque option contient des coordonnées et la liste des ~chiffres~
+     permis dans la case correspondante, soit ~options: ((int * int) * int list) list~
+   - [[https://www.reactiongifs.com/r/2013/10/tim-and-eric-mind-blown.gif]]
+   - OCaml dispose aussi de fonctionnalités de programmation orientée objet pour donner des noms aux choses; à préférer dans un programme plus sérieux
+2. la ~meilleure_option~, obtenue en cherchant le ~min~ des ~options~ selon une fonction de comparaison, dans notre cas celle-ci :
+   #+BEGIN_SRC ocaml
+   
+   (fun (_, chiffres_permis_a) (_, chiffres_permis_b) ->
+     (List.length chiffres_permis_a) - (List.length chiffres_permis_b))
+   
+   #+END_SRC
+3. ... il n'y a pas de 3; enfin presque — Il n'y a plus qu'à boucher les trous.
+#+BEGIN_SRC ocaml
+
+let rec resoudre sudoku : sudoku list =
+   let cases_vides = cases_vides sudoku
+   in
+   match cases_vides with
+     | [] -> if est_conforme(sudoku) then [sudoku] else []
+     | _ -> let options = (***)
+     in
+     let meilleure_option = (***)
+     in
+     let ((i, j), chiffres) = meilleure_option  (* <------ Déconstruction d'un tuple de tuples *)
+     in List.concat (fun c -> resoudre (remplace2 sudoku i j (Nb c))) chiffres)
+
+#+END_SRC
+
+Solution pour les deux ~(***)~:
+
+#+BEGIN_SRC ocaml
+
+     let options : ((int * int) * int list) list =
+       List.map (fun (i, j) -> ((i,j), chiffres_permis sudoku i j)) cases_vides
+     in
+     let meilleure_option = min (fun (_, chiffres_permis_a)
+                                     (_, chiffres_permis_b) ->
+                                (List.length chiffres_permis_b) - (List.length chiffres_permis_a)
+                              ) options
+     in
+
+#+END_SRC
+
+Ce à quoi il manque la fonction ~chiffres_permis~...
+
+#+BEGIN_SRC ocaml
+
+let chiffres_permis sudoku i j =
+  let chiffres = 1 --^ (List.length sudoku + 1)
+  in
+  List.filter
+    (fun n -> (est_conforme (remplace2 sudoku i j (Nb n)))
+    ) chiffres
+
+#+END_SRC
+
+... et la fonction ~min~, qu'on peut écrire en appelant une *fonction
+récursive auxiliaire* : (cf. le gif ci-dessus derechef)
+
+#+BEGIN_SRC ocaml
+
+let min compare l =
+  let rec min_ meilleur l = match l with
+    | []      -> meilleur
+    | a :: l' -> min_ (if (compare a meilleur) < 0 then a else meilleur) l'
+  in match l with
+  | []      -> raise (Failure "min de liste vide")
+  | a :: l' -> min_ a l'
+
+
+#+END_SRC
+
+(Les deux fonctions ~chiffres_permis~ et ~min~ se testent facilement à
+la main)
+
+*** Et soudain !
+
+#+BEGIN_SRC ocaml
+
+# resoudre sudoku_tres_difficile;;
+- : sudoku list =
+[[[Nb 9; Nb 7; Nb 2; Nb 5; Nb 8; Nb 4; Nb 1; Nb 3; Nb 6];
+  [Nb 6; Nb 3; Nb 4; Nb 2; Nb 9; Nb 1; Nb 8; Nb 5; Nb 7];
+  [Nb 5; Nb 1; Nb 8; Nb 7; Nb 6; Nb 3; Nb 9; Nb 2; Nb 4];
+  [Nb 4; Nb 6; Nb 7; Nb 1; Nb 3; Nb 9; Nb 2; Nb 8; Nb 5];
+  [Nb 1; Nb 2; Nb 3; Nb 6; Nb 5; Nb 8; Nb 7; Nb 4; Nb 9];
+  [Nb 8; Nb 5; Nb 9; Nb 4; Nb 7; Nb 2; Nb 6; Nb 1; Nb 3];
+  [Nb 2; Nb 8; Nb 5; Nb 9; Nb 4; Nb 6; Nb 3; Nb 7; Nb 1];
+  [Nb 7; Nb 9; Nb 1; Nb 3; Nb 2; Nb 5; Nb 4; Nb 6; Nb 8];
+  [Nb 3; Nb 4; Nb 6; Nb 8; Nb 1; Nb 7; Nb 5; Nb 9; Nb 2]]]
+
+
+#+END_SRC
+
+** Optimisons !
+
+À chaque tour, on revérifie la forme «bien carrée» alors que ce n'est
+pas nécessaire (puisque ~remplace2~ ne la change pas) :
+
+#+BEGIN_SRC ocaml
+
+let est_conforme sudoku =
+  est_bien_carre sudoku
+  &&
+  est_conforme_rapide_ sudoku
+
+#+END_SRC
+
+#+BEGIN_SRC ocaml
+
+let est_conforme_rapide_ sudoku =
+  let plage = 0 --^ (List.length sudoku)
+  in (* etc. *)
+
+#+END_SRC
+
+On peut alors remplacer ~est_conforme~ par ~est_conforme_rapide_~ dans
+la boucle intérieure (c'est-à-dire ~chiffres_permis~)
+
+Pour optimiser davantage, on pourrait imaginer de ne pas recalculer
+les listes de chiffres permis dans chaque case à chaque fois qu'on
+examine un nouveau ~sudoku~; mais plutôt, comme le ferait un joueur
+humain (avec la technique des petits chiffres au crayon), de maintenir
+ces listes sous la forme d'une propriété (immuable bien sûr)
+au sein d'une ~class sudoku~. Cela permettrait à notre programme de
+marchander de la RAM contre du CPU, ce qui est souvent un bon /deal/
+dans l'ère qui est la nôtre.
+
+* Pour finir : un vrai programme
+
+Ce § introduit :
+- ~print_*~, parce que «ce sont les effets de bord qui font décoller la fusée» (Xavier Leroy, INRIA)
+- Le compilateur vers le langage machine (jusqu'ici nous n'avons fait usage que du /bytecode/)
+
+#+BEGIN_SRC ocaml
+
+
+let print_sudoku sudoku =
+  let case_to_string c = match c with
+    | Vide -> " "
+    | Nb x -> Printf.sprintf "%d" x
+  in
+  let print_line l = print_endline (String.concat " " (List.map case_to_string l))
+  in
+  begin
+    List.iter print_line sudoku ;
+    print_newline ()
+  end;;
+
+List.iter print_sudoku (resoudre sudoku_tres_difficile)
+
+
+#+END_SRC
+
+#+BEGIN_SRC shell
+
+ocamlopt sudoku.ml
+time ./a.out
+
+#+END_SRC
+
+Et voilà pourquoi la compilation, la vraie, ne sera jamais démodée...

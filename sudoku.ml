@@ -43,7 +43,7 @@ let listMap2 f plage =
   in List.concat (List.map petite_ligne plage)
 
 let petit_carre sudoku i0 j0 =
-  listMap2 (fun i j -> place sudoku (i  + i0) (j + j0)) (0 --^ (ordre sudoku))
+  listMap2 (fun i j -> place sudoku (i  + i0) (j + j0)) (0 --^ ordre sudoku)
 
 let petits_carres sudoku =
   let ordre = ordre sudoku
